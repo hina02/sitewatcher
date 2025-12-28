@@ -1,10 +1,10 @@
-apiVersion: v1
+ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: redis-config
 data:
-  host: "redis"
-  port: "16379"
+  host: "redis" # Service名と同じにする
+  port: "{{ .Values.redis.service.port }}"
 
 ---
 apiVersion: v1
@@ -14,7 +14,7 @@ metadata:
 spec:
   resources:
     requests:
-      storage: 1Gi
+      storage: {{ .Values.redis.persistence.size }}
   volumeMode: Filesystem
   accessModes:
     - ReadWriteOnce
@@ -24,6 +24,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: redis
+  labels:
+    app: redis
 spec:
   selector:
     matchLabels:
@@ -35,21 +37,20 @@ spec:
     spec:
       containers:
       - name: redis
-        image: redis:latest
+        image: "{{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}"
+        imagePullPolicy: IfNotPresent
         ports: 
           - containerPort: 6379
         volumeMounts:
-        - name: redis
+        - name: redis-data
           mountPath: /data
-
         readinessProbe:
           exec:
             command:  ["redis-cli", "ping"]
           initialDelaySeconds: 5
           timeoutSeconds: 3
-          
       volumes:
-        - name: redis
+        - name: redis-data
           persistentVolumeClaim:
             claimName: redis
 
@@ -58,9 +59,11 @@ apiVersion: v1
 kind: Service
 metadata:
   name: redis
+  labels:
+    app: redis
 spec:
   selector:
     app: redis
   ports:
-  - port: 16379
+  - port: {{ .Values.redis.service.port }}
     targetPort: 6379

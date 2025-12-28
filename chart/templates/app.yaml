@@ -1,8 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: worker
+  name: {{ .Values.appName.worker }}
 spec:
+  replicas: {{ .Values.replicaCount.worker }}
   selector:
     matchLabels:
       app: worker
@@ -12,9 +13,9 @@ spec:
         app: worker
     spec:
       containers:
-      - name: worker
-        image: sitewatcher:latest
-        imagePullPolicy: IfNotPresent
+      - name: {{ .Values.appName.worker }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         command: ["arq", "app.worker.WorkerSettings"]
         env:
         - name: SENTRY_DSN
@@ -33,14 +34,14 @@ spec:
               name: redis-config
               key: port
         ports:
-        - containerPort: 8001
+        - containerPort: {{ .Values.service.worker.port }}
           name: metrics
 ---
 # worker用のService
 apiVersion: v1
 kind: Service
 metadata:
-  name: worker
+  name: {{ .Values.appName.worker }}
   labels:
     app: worker
 spec:
@@ -48,16 +49,17 @@ spec:
   selector:
     app: worker
   ports:
-  - port: 8001
-    targetPort: 8001
+  - port: {{ .Values.service.worker.port }}
+    targetPort: metrics
     name: metrics
 
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: main
+  name: {{ .Values.appName.main }}
 spec:
+  replicas: {{ .Values.replicaCount.main }}
   selector:
     matchLabels:
       app: main
@@ -68,8 +70,8 @@ spec:
     spec:
       containers:
       - name: main
-        image: sitewatcher:latest
-        imagePullPolicy: IfNotPresent
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
         env:
         - name: SENTRY_DSN
@@ -107,11 +109,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: main
+  name: {{ .Values.appName.main }}
   labels:
     app: main
 spec:
-  type: LoadBalancer
+  type: {{ .Values.service.main.type }}
   selector:
     app: main
   ports:

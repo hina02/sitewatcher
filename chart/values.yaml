@@ -1,0 +1,35 @@
+# --- アプリ設定 ---
+appName:
+  main: main
+  worker: worker
+
+image:
+  repository: sitewatcher
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount:
+  main: 1
+  worker: 1
+
+service:
+  main:
+    type: LoadBalancer
+  worker:
+    port: 8001
+
+# --- Redis設定 ---
+redis:
+  image:
+    repository: redis
+    tag: latest
+  persistence:
+    size: 1Gi
+  service:
+    port: 16379
+
+# --- 監視設定---
+monitoring:
+  enabled: true # falseにすれば作成されない
+  namespace: monitoring # Prometheusがいる場所
+  prometheusRelease: monitoring # Helmのリリース名

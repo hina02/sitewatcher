@@ -1,0 +1,27 @@
+{{- if .Values.monitoring.enabled -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .Values.appName.worker }}-monitor
+  # ★重要: 設定ファイル自体は Prometheus がいる場所に置く
+  namespace: {{ .Values.monitoring.namespace }}
+  labels:
+    # Prometheus Operator のリリース名に合わせる
+    release: {{ .Values.monitoring.prometheusRelease }}
+    app: {{ .Values.appName.worker }}
+spec:
+  # ★ここが魔法！
+  # "helm install -n production" と打てば、自動で "production" を監視しに行きます
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  
+  selector:
+    matchLabels:
+      app: worker
+  
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 10s
+{{- end -}}
