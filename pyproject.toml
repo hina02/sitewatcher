@@ -1,0 +1,15 @@
+[project]
+name = "sitewatcher"
+version = "0.1.0"
+description = "Site Watcher"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "arq>=0.26.3",
+    "fastapi>=0.127.1",
+    "httpx>=0.28.1",
+    "redis>=5.3.1",
+    "sentry-sdk[fastapi]>=2.48.0",
+    "uvicorn>=0.40.0",
+    "prometheus-client>=0.23.1",
+]

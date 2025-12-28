@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+spec:
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      containers:
+      - name: worker
+        image: sitewatcher:latest
+        imagePullPolicy: IfNotPresent
+        command: ["arq", "app.worker.WorkerSettings"]
+        env:
+        - name: SENTRY_DSN
+          valueFrom:
+            secretKeyRef:
+              name: secret
+              key: sentry-dsn
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: redis-config
+              key: host
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: redis-config
+              key: port
+        ports:
+        - containerPort: 8001
+          name: metrics
+---
+# worker用のService
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker
+  labels:
+    app: worker
+spec:
+  type: ClusterIP
+  selector:
+    app: worker
+  ports:
+  - port: 8001
+    targetPort: 8001
+    name: metrics
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: main
+spec:
+  selector:
+    matchLabels:
+      app: main
+  template:
+    metadata:
+      labels:
+        app: main
+    spec:
+      containers:
+      - name: main
+        image: sitewatcher:latest
+        imagePullPolicy: IfNotPresent
+        command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+        env:
+        - name: SENTRY_DSN
+          valueFrom:
+            secretKeyRef:
+              name: secret
+              key: sentry-dsn
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: redis-config
+              key: host
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: redis-config
+              key: port
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        ports:
+          - containerPort: 8000
+            name: metrics
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: main
+  labels:
+    app: main
+spec:
+  type: LoadBalancer
+  selector:
+    app: main
+  ports:
+  - port: 8000
+    targetPort: 8000
