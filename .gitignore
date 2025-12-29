@@ -16,3 +16,11 @@ venv.bak/
 # Ignore redis binary dump (dump.rdb) files
 redis_data
 *.rdb
+
+# --- Terraform ---
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+*.plan
